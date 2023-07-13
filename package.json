@@ -1,0 +1,18 @@
+{
+  "name": "book-management-api",
+  "version": "1.0.0",
+  "description": "Restful API for books",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.mjs",
+    "start": "node server.mjs"
+  },
+  "author": "Alyssa Basalo",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "joi": "^17.9.2",
+    "mongoose": "^7.3.2"
+  }
+}
