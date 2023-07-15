@@ -1,7 +1,8 @@
 import {jest} from "@jest/globals";
 import app from "../app-config.mjs";
 import request from "supertest";
-import bookModel from '../models/books/details.mjs'
+import bookModel from '../models/books/details.mjs';
+import {mockGetAllData} from './mock-data.mjs';
 import {dbConnect, dbClose} from '../mongoose-con.mjs';
 import {config} from 'dotenv';
 config();
@@ -19,7 +20,7 @@ afterAll(async () => {
 describe("Save book details", () => {
     test("it should save the book details succesfully", async () => {
         jest.spyOn(bookModel, 'create').mockImplementationOnce(() => Promise.resolve({}));
-        const res = await request(app).post("/book").send({
+        const res = await request(app).post("/books").send({
             title: "Hello",
             author: "Anonymous",
             genre: "Slice of Life"
@@ -34,7 +35,7 @@ describe("Save book details", () => {
     })
     test("it should respond with 400 error if create model fails", async () => {
         jest.spyOn(bookModel, 'create').mockImplementationOnce(() => Promise.reject({}));
-        const res = await request(app).post("/book").send({
+        const res = await request(app).post("/books").send({
             title: "Hello",
             author: "Anonymous",
             genre: "Slice of Life"
@@ -48,7 +49,7 @@ describe("Save book details", () => {
         expect(res.body).toStrictEqual(expectedResponse);
     })
     test("it should respond with 422 error if title is missing in req body", async () => {
-        const res = await request(app).post("/book").send({
+        const res = await request(app).post("/books").send({
             author: "Anonymous",
             genre: "Slice of Life"
         })
@@ -62,7 +63,7 @@ describe("Save book details", () => {
         expect(res.body).toStrictEqual(expectedResponse);
     })
     test("it should respond with 422 error if author is missing in req body", async () => {
-        const res = await request(app).post("/book").send({
+        const res = await request(app).post("/books").send({
             title: "Test",
             genre: "Slice of Life"
         })
@@ -76,7 +77,7 @@ describe("Save book details", () => {
         expect(res.body).toStrictEqual(expectedResponse);
     })
     test("it should respond with 422 error if genre is missing in req body", async () => {
-        const res = await request(app).post("/book").send({
+        const res = await request(app).post("/books").send({
             title: "Test",
             author: "Test"
         })
@@ -88,5 +89,50 @@ describe("Save book details", () => {
         }
         expect(res.statusCode).toEqual(422);
         expect(res.body).toStrictEqual(expectedResponse);
+    })
+})
+
+describe("Get All Books", () => {
+    test("it should successfully fetch all book details with default limit 10", async() => {
+        jest.spyOn(bookModel, 'find')
+        .mockImplementationOnce(() => ({
+            limit: () => mockGetAllData
+        }));
+        const res = await request(app).get("/books").expect(200);
+        expect(res.body.code).toEqual(200);
+        expect(res.body.enum).toEqual("SUCCESS");
+        expect(res.body.data.length).not.toEqual(0);
+        expect(res.body.data.length).toEqual(10);
+    })
+    test("it should successfully fetch all book details with specified limit", async() => {
+        jest.spyOn(bookModel, 'find')
+        .mockImplementationOnce(() => ({
+            limit: (limit) => mockGetAllData.slice(0, limit)
+        }));
+        const res = await request(app).get("/books").query({limit: 5}).expect(200);
+        expect(res.body.code).toEqual(200);
+        expect(res.body.enum).toEqual("SUCCESS");
+        expect(res.body.data.length).not.toEqual(0);
+        expect(res.body.data.length).toEqual(5);
+    })
+    test("it should handle error when model function fails", async() => {
+        jest.spyOn(bookModel, 'find')
+        .mockImplementationOnce(() => ({
+            limit: jest.fn().mockRejectedValueOnce(new Error('Model Error Message'))
+        }));
+        const res = await request(app).get("/books").expect(400);
+        expect(res.body.code).toEqual(400);
+        expect(res.body.enum).toEqual("FAILED");
+        expect(res.body.message).toEqual("Model Error Message");
+    })
+    test("it should respond with generic error message when error message is undefined or empty", async() => {
+        jest.spyOn(bookModel, 'find')
+        .mockImplementationOnce(() => ({
+            limit: jest.fn().mockRejectedValueOnce(new Error(''))
+        }));
+        const res = await request(app).get("/books").expect(400);
+        expect(res.body.code).toEqual(400);
+        expect(res.body.enum).toEqual("FAILED");
+        expect(res.body.message).toEqual("An error has occured");
     })
 })
