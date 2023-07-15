@@ -23,6 +23,6 @@
   "jest": {
     "transform": {},
     "testEnvironment": "jest-environment-node",
-    "testRegex": "./tests/"
+    "testRegex": "./tests/.*.test.mjs"
   }
 }
